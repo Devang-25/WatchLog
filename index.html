@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Watch my file</title>
+      <style>
+        body {
+            font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        body.is-loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            border: 2px solid black;
+            animation: expand .3s ease-in;
+        }
+        
+        @keyframes expand {
+            from {
+                width: 0%;
+            }
+            to {
+                width: 100%;
+            }
+        }
+
+        h2.subtitle {
+            font-size: 1rem;
+        }
+
+        .file {
+            font-size: .7rem;
+            width: 90%;
+            height: 60vh;
+            overflow: auto;
+            border: 1px dashed black;
+            padding: 1% 0 1% 2%;
+            position: relative;
+        }
+
+        .file.is-error {
+            display: none;
+        }
+
+        .credits {
+            font-size: 0.7rem;
+            font-style: italic;
+            margin-top: 5%;
+        }
+        </style>
+  </head>
+  <body>
+    <h1 class="title">WatchLog</h1>
+    <h2 class="subtitle">You're currently watching: <em id="filename"></em></h2>
+    <div class="file" id="file">
+        <div class="lines" id="lines"></div>
+    </div>
+    <div class="credits">
+        <h1> Made with passion by <a href="https://www.linkedin.com/in/devang25/">Devang Sharma </h1></a> 
+    </div>
+  </body>
+  <script>
+    const showLoader = () => {
+        document.getElementsByTagName("body")[0].classList.add("is-loading");
+    }
+    const hideLoader = () => {
+        document.getElementsByTagName("body")[0].classList.remove("is-loading");
+    }
+    const scrollDown = () => {
+        let filebox = document.getElementById('file');
+        filebox.scrollTop = filebox.scrollHeight;
+    }
+
+    const socket = new WebSocket("ws://localhost:8080")
+    socket.onopen = event => {
+        socket.send("Hello, World!");
+    }
+
+    socket.onmessage = event => {
+        showLoader();
+        let data = JSON.parse(event.data);
+        if (data.code) {
+            document.getElementById("file").classList.add("is-error");
+            document.getElementById("filename").parentElement.textContent = "Sorry, data can't be retrieved from the file";
+            hideLoader();
+        } else {
+            document.getElementById("file").classList.remove("is-error");
+            if (data.filename) {
+                document.getElementById("filename").textContent = data.filename;
+            }
+            setTimeout(() => {
+                if (data.lines) {
+                    data.lines.forEach(line => {
+                        let p = document.createElement("p");
+                        p.textContent = line;
+                        document.getElementById("lines").append(p);
+                    });
+                    scrollDown();
+                }
+                hideLoader();
+            }, 300)
+        }
+    }
+  </script>
+</html>
